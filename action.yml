@@ -12,6 +12,11 @@ runs:
       run: ls -al
       shell: bash
 
+    - name: List all action files
+      if: runner.os == 'Linux'
+      run: ls -al ${{ github.action_path}}
+      shell: bash
+
     - uses: actions/setup-python@v5.1.0
       with:
         python-version: '3.12'
@@ -19,6 +24,6 @@ runs:
 
     - name: Install Dependencies
       if: runner.os == 'Linux'
-      run: pip install -r requirements.txt
+      run: pip install -r ${{ github.action_path }}/requirements.txt
       shell: bash
 
