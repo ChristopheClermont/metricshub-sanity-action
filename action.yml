@@ -20,7 +20,7 @@ runs:
     - name: Install Python
       uses: actions/setup-python@v5.1.0
       with:
-        python-version: '3.12'
+        python-version-file: ${{ github.action_path }}/.python-version
 
     - name: Install Dependencies
       if: runner.os == 'Linux'
