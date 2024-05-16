@@ -17,10 +17,10 @@ runs:
       run: ls -al ${{ github.action_path}}
       shell: bash
 
-    - uses: actions/setup-python@v5.1.0
+    - name: Install Python
+      uses: actions/setup-python@v5.1.0
       with:
         python-version: '3.12'
-        cache: 'pip'
 
     - name: Install Dependencies
       if: runner.os == 'Linux'
