@@ -2,28 +2,57 @@ name: Sanity Check
 
 description: Sanity Check of MetricsHub
 
+inputs:
+  OWNER:
+    description: GitHub repository owner
+    required: true
+    default: 'SentrySoftware'
+  REPO:
+    description: GitHub repository
+    required: true
+    default: metricshub
+  BRANCH:
+    description: GitHub repository branch
+    required: true
+    default: main
+
 runs:
   using: composite
 
   steps:
 
-    - name: List all files
-      if: runner.os == 'Linux'
-      run: ls -al
-      shell: bash
+    - name: Download artifacts from MetricsHub
+      run: |
+        # Define variables
+        OWNER=${{ github.OWNER }}
+        REPO=${{ github.REPO }}
+        BRANCH=${{ github.BRANCH }}
+        
+        # Get the latest successful workflow run ID
+        WORKFLOW_RUNS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/$OWNER/$REPO/actions/runs?branch=$BRANCH&status=completed&per_page=5")
+        RUN_ID=$(echo $WORKFLOW_RUNS | jq -r '.workflow_runs[] | select(.conclusion == "success") | .id' | head -n 1)
 
-    - name: List all action files
-      if: runner.os == 'Linux'
-      run: ls -al ${{ github.action_path}}
-      shell: bash
+        # Get the artifact download URL
+        ARTIFACTS_URL="https://api.github.com/repos/$OWNER/$REPO/actions/runs/$RUN_ID/artifacts"
+        ARTIFACTS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" $ARTIFACTS_URL)
+        
+        # Extract artifact information
+        ARTIFACT_ID=$(echo $ARTIFACTS | jq -r '.artifacts[0].id')
+        DOWNLOAD_URL="https://api.github.com/repos/$OWNER/$REPO/actions/artifacts/$ARTIFACT_ID/zip"
+        
+        # Download the artifact
+        curl -L -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o artifact.zip $DOWNLOAD_URL
+        
+        # Unzip the artifact and extract tarball
+        mkdir -p artifacts
+        unzip artifact.zip -d artifacts
+        cd artifacts
+        tar -xzf metricshub-linux-*.tar.gz
 
-    - name: Install Python
-      uses: actions/setup-python@v5.1.0
-      with:
-        python-version-file: ${{ github.action_path }}/.python-version
+    - name: MetricsHub version
+      run: |
+        cd artifacts/metricshub/bin
+        ./metricshub --version
 
-    - name: Install Dependencies
-      if: runner.os == 'Linux'
-      run: pip install -r ${{ github.action_path }}/requirements.txt
-      shell: bash
-
+    - name: List downloaded files
+      run: ls -al artifacts
