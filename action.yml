@@ -15,6 +15,9 @@ inputs:
     description: GitHub repository branch
     required: true
     default: main
+  GITHUB_TOKEN:
+    description: GitHub secret access repository
+    required: true
 
 runs:
   using: composite
@@ -27,21 +30,22 @@ runs:
         OWNER=${{ github.OWNER }}
         REPO=${{ github.REPO }}
         BRANCH=${{ github.BRANCH }}
+        GITHUB_TOKEN=${{ github.GITHUB_TOKEN }}
         
         # Get the latest successful workflow run ID
-        WORKFLOW_RUNS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/$OWNER/$REPO/actions/runs?branch=$BRANCH&status=completed&per_page=5")
+        WORKFLOW_RUNS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$OWNER/$REPO/actions/runs?branch=$BRANCH&status=completed&per_page=5")
         RUN_ID=$(echo $WORKFLOW_RUNS | jq -r '.workflow_runs[] | select(.conclusion == "success") | .id' | head -n 1)
 
         # Get the artifact download URL
         ARTIFACTS_URL="https://api.github.com/repos/$OWNER/$REPO/actions/runs/$RUN_ID/artifacts"
-        ARTIFACTS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" $ARTIFACTS_URL)
+        ARTIFACTS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" $ARTIFACTS_URL)
         
         # Extract artifact information
         ARTIFACT_ID=$(echo $ARTIFACTS | jq -r '.artifacts[0].id')
         DOWNLOAD_URL="https://api.github.com/repos/$OWNER/$REPO/actions/artifacts/$ARTIFACT_ID/zip"
         
         # Download the artifact
-        curl -L -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o artifact.zip $DOWNLOAD_URL
+        curl -L -H "Authorization: token $GITHUB_TOKEN" -o artifact.zip $DOWNLOAD_URL
         
         # Unzip the artifact and extract tarball
         mkdir -p artifacts
